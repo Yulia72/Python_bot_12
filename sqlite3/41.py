@@ -27,3 +27,6 @@ result = cursor.fetchall()
 #result = cursor.fetchmany(2)
 #result = cursor.fetchone()
 print(result)
+
+cursor.execute("INSERT INTO users (name)"
+                "VALUES ('Anna')")

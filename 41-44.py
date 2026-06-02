@@ -31,11 +31,7 @@ def del_data():
     db.commit()
 
 def insert_data():
-    db_list = [
-        ("Понеділок", "14:30", "Волейбол\n"),
-        ("Середа", "12:30", "Танці\n"),
-        ("Субота", "12:30", "Програмування\n")
-    ]
+    db_list = []
     for db_list_item in db_list:
         cursor.execute("INSERT INTO schedule (day, time, data) VALUES (?,?,?)",
                        (
@@ -45,8 +41,8 @@ def insert_data():
                         )
                        )
         db.commit()
-del_data()
-insert_data()
+#del_data()
+#insert_data()
 @bot.message_handler(commands=['schedule'])
 def start(message):
     text = "Чим можу тобі допомогти?"
@@ -88,12 +84,19 @@ def show_schedule(message):
     for day in week_day:
         cursor.execute("SELECT * FROM schedule WHERE day = ?", (day,))
         data = cursor.fetchall()
-        text += f"{day}\n"
+        text += f"\n📅 {day}\n"
         if len(data) == 0:
-            text += "Немає даних"
+            text += "Немає даних\n"
         else:
             for x, y in enumerate(data):
-                text += f"{x+1}" f"ID:{y[0]}" f"{y[2]}" f"{y[3]}"
+                text += (
+                    f"{x + 1}. "
+                    f"ID: {y[0]} | "
+                    f"🕒 {y[2]} | "
+                    f"📚 {y[3]}\n"
+                )
+
+        text += "\n"
     bot.send_message(message.chat.id, text)
 
 def show_schedule_one_day(message):
@@ -107,12 +110,17 @@ def show_schedule_one_day(message):
 def show_day_result(message):
     cursor.execute("SELECT * FROM schedule WHERE day = ?", (message.text,))
     data = cursor.fetchall()
-    text = f"{message.text}\n"
+    text = f"\n📅 {message.text}\n\n"
     if len(data) == 0:
-        text = f"На цей день немає даних"
+        text += "Немає даних\n"
     else:
         for x, y in enumerate(data):
-            text += f"{x + 1}" f"ID:{y[0]}" f"{y[2]}" f"{y[3]}"
+            text += (
+                f"{x + 1}. "
+                f"ID: {y[0]} | "
+                f"🕒 {y[2]} | "
+                f"📚 {y[3]}\n"
+            )
     bot.send_message(message.chat.id, text)
 
 def edit_schedule(message):
@@ -121,11 +129,47 @@ def edit_schedule(message):
     markup.add("Видалити запис")
     markup.add("Видалити все")
     msg = bot.send_message(message.chat.id, "Що ти хочеш вибрати", reply_markup=markup)
-    #bot.register_next_step_handler(msg, edit_add)
 
 
 
+    bot.register_next_step_handler(msg, edit_select)
+
+def edit_select(message):
+    match message.text:
+        case "Додати запис":
+            bot.send_message(message.chat.id, "Введи день:\nчас:\nпредмет:\nНаприклад:\nПонеділок 12:30 англійська")
+            bot.register_next_step_handler(message, add_day)
+        case "Видалити запис":
+            bot.send_message(message.chat.id, "Введи id запису, який потрібно видалити")
+            bot.register_next_step_handler(message, delete_day)
+        case "Видалити все":
+            cursor.execute("DELETE FROM schedule")
+            db.commit()
+            bot.send_message(message.chat.id, "Записи видалено")
+        case _:
+            bot.send_message(message.chat.id, "Помилка вибору")
+    print(message.text)
+def add_day(message):
+    try:
+        data = message.text.split()
+        day = data[0]
+        time = data[1]
+        subject = " ".join(data[2:])
+        cursor.execute("INSERT INTO schedule(day,time,data)VALUES(?,?,?)", (day, time, subject))
+        db.commit()
+        bot.send_message(message.chat.id, "Запис додано")
+    except:
+        bot.send_message(message.chat.id, "Помилка")
+
+def delete_day(message):
+    try:
+        note_id = int(message.text)
+        cursor.execute("DELETE FROM schedule WHERE id = ?", (note_id,))
+        db.commit()
+        bot.send_message(message.chat.id, "Запис видалено")
+    except:
+        bot.send_message(message.chat.id, "Помилка")
 
 
-
+print("Бот працює...")
 bot.infinity_polling()

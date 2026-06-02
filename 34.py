@@ -19,4 +19,7 @@ def qwerty(message):
     else:
         bot.send_message(message.chat.id, "I don't understand you")
 
+
+
+
 bot.polling()
